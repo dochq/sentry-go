@@ -145,7 +145,7 @@ const maxRequestBodyBytes = 10 * 1024
 
 // A limitedBuffer is like a bytes.Buffer, but limited to store at most Capacity
 // bytes. Any writes past the capacity are silently discarded, similar to
-// ioutil.Discard.
+// io.Discard.
 type limitedBuffer struct {
 	Capacity int
 
@@ -365,7 +365,11 @@ func (scope *Scope) ApplyToEvent(event *Event, hint *EventHint) *Event {
 				// to link errors and traces/spans in Sentry.
 				continue
 			}
-			event.Contexts[key] = value
+
+			// Ensure we are not overwriting event fields
+			if _, ok := event.Contexts[key]; !ok {
+				event.Contexts[key] = value
+			}
 		}
 	}
 
@@ -379,8 +383,7 @@ func (scope *Scope) ApplyToEvent(event *Event, hint *EventHint) *Event {
 		}
 	}
 
-	var emptyUser User
-	if event.User == emptyUser {
+	if event.User.IsEmpty() {
 		event.User = scope.user
 	}
 
